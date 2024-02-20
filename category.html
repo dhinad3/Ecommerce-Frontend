@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaangify</title>
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body class="bg-light">
+  <div class="container mt-4">
+    <h2 class="mb-2 text-center" style="color:#007bff;">Welcome To Vaangify!!!</h2>
+    <h2 class="mb-3">All Categories</h2>
+    <div class="input-group mb-3">
+      <input type="text" id="searchInput" class="form-control col-6 col-md-4" placeholder="Search Products You Want....">
+      <div class="input-group-append">
+        <button class="btn btn-outline-primary" type="button" onclick="searchSolr()">Search</button>
+      </div>
+    </div>
+    
+    <div class="input-group mb-3">
+      <div class="input-group-append"></div>
+    </div>
+    <div class="form-row mb-3">
+      <div class="col-md-4">
+        <label for="itemsPerPage">Items per page:</label>
+        <select id="itemsPerPage" onchange="changeItemsPerPage(this.value)" class="form-control">
+          <option value="5" <%= itemsPerPage === 5 ? 'selected' : '' %>5</option>
+          <option value="10" <%= itemsPerPage === 10 ? 'selected' : '' %>10</option>
+          <option value="15" <%= itemsPerPage === 15 ? 'selected' : '' %>15</option>
+        </select>
+      </div>
+    </div>
+    <table id="categoryTable" class="table table-striped">
+      <thead class="thead-dark">
+        <tr>
+          <th>Category ID</th>
+          <th>Category Name</th>
+          <th>Stock</th>
+          <th>Create Date</th>
+        </tr>
+      </thead>
+      <tbody id="categoryBody">
+        
+
+      </tbody>
+    </table>
+    <a href="products.html" class="btn btn-primary">Go To Products</a>
+    <div id="pagination" class="text-center">
+       
+
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+
+function searchSolr() {
+    const searchQuery = document.getElementById('searchInput').value.trim();
+    if (searchQuery !== '') {
+      window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`;
+    }
+  }
+    document.addEventListener('DOMContentLoaded', function () {
+      const itemsPerPageSelect = document.getElementById('itemsPerPage');
+      const searchInput = document.getElementById('searchInput');
+
+      window.fetchData = function (page, itemsPerPage) {
+        const url = `http://localhost:4000/category_page?page=${page}&itemsPerPage=${itemsPerPage}`;
+        fetch(url)
+          .then(response => response.json())
+          .then(data => updateTable(data))
+          .catch(error => console.error('Error fetching data:', error));
+
+        const newUrl = `${window.location.pathname}?page=${page}&itemsPerPage=${itemsPerPage}`;
+        history.pushState({}, '', newUrl);
+      };
+
+      function updateTable(data) {
+        const categoryBody = document.getElementById('categoryBody');
+        categoryBody.innerHTML = '';
+
+        data.results.forEach(row =>   {
+          const newRow = document.createElement('tr');
+          newRow.innerHTML = `
+            <td class="text-primary">${row.cid}</td>
+            <td><a href="products.html?cid=${row.cid}" class="text-success">${row.category_name}</a></td>
+            <td class="text-info">${row.stock}</td>
+            <td class="text-muted">${new Date(row.create_date).toLocaleDateString()}</td>
+          `;
+          categoryBody.appendChild(newRow);
+        });
+
+        // Add pagination links
+        const paginationContainer = document.getElementById('pagination');
+        paginationContainer.innerHTML = `
+          <div class="text-center">
+            ${data.page > 1 ? `<a href="#" onclick="fetchData(${data.page - 1}, ${data.itemsPerPage}); return false;" class="btn btn-primary">Previous</a>` : ''}
+            ${Array.from({ length: data.totalPages }, (_, i) => `
+              <a href="#" onclick="fetchData(${i + 1}, ${data.itemsPerPage}); return false;" class="btn btn-light ${data.page === i + 1 ? 'active' : ''}">${i + 1}</a>
+            `).join('')}
+            ${data.page < data.totalPages ? `<a href="#" onclick="fetchData(${data.page + 1}, ${data.itemsPerPage}); return false;" class="btn btn-primary">Next</a>` : ''}
+          </div>
+        `;
+      }
+
+      const page = new URLSearchParams(window.location.search).get('page') || 1;
+      fetchData(page, parseInt(itemsPerPageSelect.value));
+      
+      itemsPerPageSelect.addEventListener('change', function () {
+        fetchData(1, parseInt(this.value));
+      });
+
+    
+      
+    });
+  </script>
+</body>
+
+</html>
